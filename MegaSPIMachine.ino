@@ -18,7 +18,7 @@ constexpr auto SPIAddressLine3 = 7;
 constexpr auto SPIAddressLine4 = 8;
 constexpr auto SPIAddressLine5 = 9; // set this to high to disable the bus
 
-constexpr auto TFTReset = 10
+constexpr auto TFTReset = 10;
 
 void setup() {
     Serial.begin(9600);
