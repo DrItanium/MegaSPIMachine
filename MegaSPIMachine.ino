@@ -27,14 +27,33 @@ constexpr auto EnableLine_23LC1024_Start = 0;
 constexpr auto EnableLine_23LC1024_End = 14;
 
 constexpr auto EnableLine_IOExpander0 = 15;
-constexpr auto IOExpander0_Code = 0b000;
 constexpr auto EnableLine_IOExpander1 = 16;
-constexpr auto IOExpander1_Code = 0b001;
-
+constexpr auto EnableLine_IOExpander2 = 17;
+constexpr auto EnableLine_IOExpander3 = 18;
+constexpr auto EnableLine_IOExpander4 = 19;
+constexpr auto EnableLine_IOExpander5 = 20;
+constexpr auto EnableLine_IOExpander6 = 21;
+constexpr auto EnableLine_IOExpander7 = 22;
+constexpr auto EnableLine_IOExpander8 = 23;
+constexpr auto EnableLine_IOExpander9 = 24;
 // There is an implied 6 bit address on top of the 18-bit address from a 
 // 23LC1024 up the 18-bits from the 23lc1024 devices
 
 Adafruit_ILI9341 tft(TFTCS, TFTDC, TFTReset);
+
+namespace bus {
+    /**
+     * Enable the given device to send commands to it
+     */
+    void enableDevice(byte deviceID) noexcept {
+        digitalWrite(SPIAddressLine0, deviceID & 0b000001 ? HIGH : LOW);
+        digitalWrite(SPIAddressLine1, deviceID & 0b000010 ? HIGH : LOW);
+        digitalWrite(SPIAddressLine2, deviceID & 0b000100 ? HIGH : LOW);
+        digitalWrite(SPIAddressLine3, deviceID & 0b001000 ? HIGH : LOW);
+        digitalWrite(SPIAddressLine4, deviceID & 0b010000 ? HIGH : LOW);
+        digitalWrite(SPIAddressLine5, deviceID & 0b100000 ? HIGH : LOW);
+    }
+}
 
 void setup() {
     Serial.begin(9600);
