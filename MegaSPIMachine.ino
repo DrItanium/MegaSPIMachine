@@ -5,7 +5,7 @@
 // [0,14] -> 23LC1024 * 15
 // 15 -> I/O0 SPI PREFIX: {000}
 // 16 -> I/O1 SPI PREFIX: {001}
-// [19,31] -> unused
+// [17,31] -> unused
 
 // pro micro pin assignments
 // spi enable lines, line 5 is for enable or disable
@@ -21,22 +21,20 @@ constexpr auto SPIAddressLine5 = 9; // set this to high to disable the bus
 constexpr auto TFTCS = 10;
 constexpr auto TFTReset = 18;
 constexpr auto TFTDC = 19;
-constexpr auto SDCS = 20;
 
 // the HC138 enabler codes
 constexpr auto EnableLine_23LC1024_Start = 0;
 constexpr auto EnableLine_23LC1024_End = 14;
 
-constexpr auto IOExpander0_CS = 2;
+constexpr auto EnableLine_IOExpander0 = 15;
 constexpr auto IOExpander0_Code = 0b000;
-constexpr auto IOExpander1_CS = 3;
+constexpr auto EnableLine_IOExpander1 = 16;
 constexpr auto IOExpander1_Code = 0b001;
 
 // There is an implied 6 bit address on top of the 18-bit address from a 
 // 23LC1024 up the 18-bits from the 23lc1024 devices
 
 Adafruit_ILI9341 tft(TFTCS, TFTDC, TFTReset);
-
 
 void setup() {
     Serial.begin(9600);
@@ -53,10 +51,6 @@ void setup() {
     digitalWrite(SPIAddressLine4, HIGH);
     pinMode(SPIAddressLine5, OUTPUT);
     digitalWrite(SPIAddressLine5, HIGH);
-    pinMode(IOExpander0_CS, OUTPUT);
-    digitalWrite(IOExpander0_CS, HIGH);
-    pinMode(IOExpander1_CS, OUTPUT);
-    digitalWrite(IOExpander1_CS, HIGH);
     tft.begin();
     tft.fillScreen(ILI9341_BLACK);
 }
