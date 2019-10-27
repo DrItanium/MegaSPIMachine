@@ -27,15 +27,11 @@ constexpr auto EnableLine_23LC1024_Start = 0;
 constexpr auto EnableLine_23LC1024_End = 14;
 
 constexpr auto EnableLine_IOExpander0 = 15;
+constexpr auto IOExpander0_Code = 0b000;
 constexpr auto EnableLine_IOExpander1 = 16;
+constexpr auto IOExpander1_Code = 0b001;
 constexpr auto EnableLine_IOExpander2 = 17;
-constexpr auto EnableLine_IOExpander3 = 18;
-constexpr auto EnableLine_IOExpander4 = 19;
-constexpr auto EnableLine_IOExpander5 = 20;
-constexpr auto EnableLine_IOExpander6 = 21;
-constexpr auto EnableLine_IOExpander7 = 22;
-constexpr auto EnableLine_IOExpander8 = 23;
-constexpr auto EnableLine_IOExpander9 = 24;
+constexpr auto IOExpander2_Code = 0b010;
 // There is an implied 6 bit address on top of the 18-bit address from a 
 // 23LC1024 up the 18-bits from the 23lc1024 devices
 
