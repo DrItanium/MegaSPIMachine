@@ -1,73 +1,76 @@
+// right now this machine is much simpler
+// 4 * 23LC1024 SRAM SPI Memory chips
+// 1 * arduino nano
+// The address is 
 #include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
-// SPI BUS Layout
-// [0,14] -> 23LC1024 * 15
-// 15 -> I/O0 SPI PREFIX: {000}
-// 16 -> I/O1 SPI PREFIX: {001}
-// [17,31] -> unused
+#include <libbonuspin.h>
 
-// pro micro pin assignments
-// spi enable lines, line 5 is for enable or disable
-// these three lines are fed to A,B,C to on each HC138 (there are four)
-constexpr auto SPIAddressLine0 = 4;
-constexpr auto SPIAddressLine1 = 5;
-constexpr auto SPIAddressLine2 = 6;
-// these two pins control which HC138 to dispatch on
-constexpr auto SPIAddressLine3 = 7;
-constexpr auto SPIAddressLine4 = 8;
-constexpr auto SPIAddressLine5 = 9; // set this to high to disable the bus
+constexpr auto EnablePin0 = 2;
+constexpr auto EnablePin1 = 3;
+constexpr auto EnablePin2 = 4;
+constexpr auto ActivatorPin = 5;
 
-constexpr auto TFTCS = 10;
-constexpr auto TFTReset = 18;
-constexpr auto TFTDC = 19;
+enum class SRAMOpcodes : uint8_t {
+    RDSR = 0x05,
+    RDMR = RDSR,
+    WRSR = 0x01,
+    WRMR = WRSR,
+    READ = 0x03,
+    WRITE = 0x02,
+    EDIO = 0x3B,
+    EQIO = 0x38,
+    RSTIO = 0xFF,
+};
 
-// the HC138 enabler codes
-constexpr auto EnableLine_23LC1024_Start = 0;
-constexpr auto EnableLine_23LC1024_End = 14;
-
-constexpr auto EnableLine_IOExpander0 = 15;
-constexpr auto IOExpander0_Code = 0b000;
-constexpr auto EnableLine_IOExpander1 = 16;
-constexpr auto IOExpander1_Code = 0b001;
-constexpr auto EnableLine_IOExpander2 = 17;
-constexpr auto IOExpander2_Code = 0b010;
-// There is an implied 6 bit address on top of the 18-bit address from a 
-// 23LC1024 up the 18-bits from the 23lc1024 devices
-
-Adafruit_ILI9341 tft(TFTCS, TFTDC, TFTReset);
-
-namespace bus {
-    /**
-     * Enable the given device to send commands to it
-     */
-    void enableDevice(byte deviceID) noexcept {
-        digitalWrite(SPIAddressLine0, deviceID & 0b000001 ? HIGH : LOW);
-        digitalWrite(SPIAddressLine1, deviceID & 0b000010 ? HIGH : LOW);
-        digitalWrite(SPIAddressLine2, deviceID & 0b000100 ? HIGH : LOW);
-        digitalWrite(SPIAddressLine3, deviceID & 0b001000 ? HIGH : LOW);
-        digitalWrite(SPIAddressLine4, deviceID & 0b010000 ? HIGH : LOW);
-        digitalWrite(SPIAddressLine5, deviceID & 0b100000 ? HIGH : LOW);
-    }
+template<int pin>
+using CableSelectHolder = bonuspin::DigitalPinHolder<pin, LOW, HIGH>;
+void sendOpcode(SRAMOpcodes opcode) {
+    SPI.transfer(uint8_t(opcode));
+}
+void transferAddress(uint32_t address) {
+    SPI.transfer(uint8_t(address >> 16));
+    SPI.transfer(uint8_t(address >> 8));
+    SPI.transfer(uint8_t(address));
 }
 
+bonuspin::HC138<2, 3, 4> decoder;
+
+template<int pin>
+uint8_t readRam(uint32_t address) {
+    decoder.enableLine((address & 0xE'0000) >> 17);
+    CableSelectHolder<pin> holder;
+    sendOpcode(SRAMOpcodes::READ);
+    transferAddress(address);
+    auto result = SPI.transfer(0x00);
+    return result;
+}
+template<int pin>
+void writeRam(uint32_t address, uint8_t value) {
+    decoder.enableLine((address & 0xE'0000) >> 17);
+    CableSelectHolder<pin> holder;
+    sendOpcode(SRAMOpcodes::WRITE);
+    transferAddress(address);
+    SPI.transfer(value);
+}
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
+    pinMode(ActivatorPin, OUTPUT);
+    pinMode(ActivatorPin, HIGH);
     SPI.begin();
-    pinMode(SPIAddressLine0, OUTPUT);
-    digitalWrite(SPIAddressLine0, HIGH);
-    pinMode(SPIAddressLine1, OUTPUT);
-    digitalWrite(SPIAddressLine1, HIGH);
-    pinMode(SPIAddressLine2, OUTPUT);
-    digitalWrite(SPIAddressLine2, HIGH);
-    pinMode(SPIAddressLine3, OUTPUT);
-    digitalWrite(SPIAddressLine3, HIGH);
-    pinMode(SPIAddressLine4, OUTPUT);
-    digitalWrite(SPIAddressLine4, HIGH);
-    pinMode(SPIAddressLine5, OUTPUT);
-    digitalWrite(SPIAddressLine5, HIGH);
-    tft.begin();
-    tft.fillScreen(ILI9341_BLACK);
+    // only have 12 devices connected right now so D
+    for (uint32_t i = 0; i < 0x10'0000; ++i) {
+        auto i8Val = static_cast<uint8_t>(0xFD);
+        writeRam<ActivatorPin>(i, i8Val);
+        if (auto result = readRam<ActivatorPin>(i); result != i8Val) {
+            Serial.print("Readback mismatch, Address: 0x");
+            Serial.print(i, HEX);
+            Serial.print(", Expected: 0x");
+            Serial.print(i8Val, HEX);
+            Serial.print(", Got: 0x");
+            Serial.println(result, HEX);
+        } 
+        delay(1);
+    }
 }
 
 
