@@ -34,10 +34,12 @@ void transferAddress(uint32_t address) {
 }
 
 bonuspin::HC138<2, 3, 4> decoder;
-
+constexpr uint8_t computeChipIndex(uint32_t value) noexcept {
+    return (0b1110'0000'0000'0000'0000 & value) >> 17;
+}
 template<int pin>
 uint8_t readRam(uint32_t address) {
-    decoder.enableLine((address & 0xE'0000) >> 17);
+    decoder.enableLine(computeChipIndex(address));
     CableSelectHolder<pin> holder;
     sendOpcode(SRAMOpcodes::READ);
     transferAddress(address);
@@ -46,19 +48,29 @@ uint8_t readRam(uint32_t address) {
 }
 template<int pin>
 void writeRam(uint32_t address, uint8_t value) {
-    decoder.enableLine((address & 0xE'0000) >> 17);
+    decoder.enableLine(computeChipIndex(address));
     CableSelectHolder<pin> holder;
     sendOpcode(SRAMOpcodes::WRITE);
     transferAddress(address);
     SPI.transfer(value);
 }
+int32_t chipIndex = -1;
+constexpr auto NumberOfChips = 5;
 void setup() {
     Serial.begin(115200);
     pinMode(ActivatorPin, OUTPUT);
     pinMode(ActivatorPin, HIGH);
     SPI.begin();
-    // only have 12 devices connected right now so D
+    // only have 5 devices connected right now so D
     for (uint32_t i = 0; i < 0x10'0000; ++i) {
+        if (auto newChipIndex = computeChipIndex(i); chipIndex != newChipIndex) {
+            if (newChipIndex >= NumberOfChips) {
+                break;
+            }
+            Serial.print("Testing chip: ");
+            Serial.println(newChipIndex, HEX);
+            chipIndex = newChipIndex;
+        }
         auto i8Val = static_cast<uint8_t>(0xFD);
         writeRam<ActivatorPin>(i, i8Val);
         if (auto result = readRam<ActivatorPin>(i); result != i8Val) {
@@ -69,8 +81,8 @@ void setup() {
             Serial.print(", Got: 0x");
             Serial.println(result, HEX);
         } 
-        delay(1);
     }
+    Serial.println("Done");
 }
 
 
